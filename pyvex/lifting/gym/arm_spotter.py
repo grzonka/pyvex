@@ -9,7 +9,7 @@ from .. import register
 l = logging.getLogger(__name__)
 
 
-class ARMInstruction(Instruction): # pylint: disable=abstract-method
+class ARMInstruction(Instruction):  # pylint: disable=abstract-method
 
     # NOTE: WARNING: There is no CPSR in VEX's ARM implementation
     # You must use straight nasty hacks instead.
@@ -121,7 +121,7 @@ class Instruction_MRC(ARMInstruction):
     # O = Offset
     # p = CP#
 
-    def compute_result(self): # pylint: disable=arguments-differ
+    def compute_result(self):  # pylint: disable=arguments-differ
         # TODO at least look at the conditionals
         # TODO Clobber the dst reg of MCR
         # TODO maybe treat coproc regs as simple storage (even though they are very much not)
@@ -138,7 +138,7 @@ class Instruction_MCR(ARMInstruction):
     # O = Offset
     # p = CP#
 
-    def compute_result(self): # pylint: disable=arguments-differ
+    def compute_result(self):  # pylint: disable=arguments-differ
         # TODO at least look at the conditionals
         # TODO Clobber the dst reg of MCR
         # TODO maybe treat coproc regs as simple storage (even though they are very much not)
@@ -148,33 +148,48 @@ class Instruction_MCR(ARMInstruction):
 class Instruction_MSR(ARMInstruction):
     name = "MSR"
     bin_format = 'cccc00i10d10xxxj1111ssssssssssss'
+
+    #            '10000001111100110000100010001000' actual value at location
+    # 81f30888 = 0b10000001111100110000100010001000
+    # 81f30888  is: msr msp, r1
     #             11100011001000011111000010010001
     #             11100001011011111111000000000001
 
-    def compute_result(self): # pylint: disable=arguments-differ
-        l.debug("Ignoring MSR instruction at %#x. VEX cannot support this instruction. See pyvex/lifting/gym/arm_spotter.py", self.addr)
+    def compute_result(self):  # pylint: disable=arguments-differ
+        l.debug(
+            "Ignoring MSR instruction at %#x. VEX cannot support this instruction. See pyvex/lifting/gym/arm_spotter.py",
+            self.addr)
 
 
 class Instruction_MRS(ARMInstruction):
     name = "MRS"
     bin_format = "cccc00010s001111dddd000000000000"
 
-    def compute_result(self): # pylint: disable=arguments-differ
-        l.debug("Ignoring MRS instruction at %#x. VEX cannot support this instruction. See pyvex/lifting/gym/arm_spotter.py", self.addr)
+    def compute_result(self):  # pylint: disable=arguments-differ
+        l.debug(
+            "Ignoring MRS instruction at %#x. VEX cannot support this instruction. See pyvex/lifting/gym/arm_spotter.py",
+            self.addr)
 
 
 class Instruction_STM(ARMInstruction):
     name = "STM"
     bin_format = 'cccc100pu1w0bbbbrrrrrrrrrrrrrrrr'
 
+    # https://developer.arm.com/documentation/100235/0100/The-Cortex-M33-Instruction-Set/Memory-access-instructions/LDM-and-STM?lang=en
+    # examples:
+    # 10001278:	e92d 43b0 	stmdb	sp!, {r4, r5, r7, r8, r9, lr}
+    # 10002664:	e92d 4ff0 	stmdb	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, lr}
+    # 10003012:	e92d 4fe0 	stmdb	sp!, {r5, r6, r7, r8, r9, sl, fp, lr}
     def match_instruction(self, data, bitstrm):
         # If we don't push anything, that's not real
         if int(data['r']) == 0:
             raise ParseError("Invalid STM instruction")
         return True
 
-    def compute_result(self): # pylint: disable=arguments-differ
-        l.warning("Ignoring STMxx ^ instruction at %#x. This mode is not implemented by VEX! See pyvex/lifting/gym/arm_spotter.py", self.addr)
+    def compute_result(self):  # pylint: disable=arguments-differ
+        l.warning(
+            "Ignoring STMxx ^ instruction at %#x. This mode is not implemented by VEX! See pyvex/lifting/gym/arm_spotter.py",
+            self.addr)
 
 
 class Instruction_LDM(ARMInstruction):
@@ -187,11 +202,11 @@ class Instruction_LDM(ARMInstruction):
             raise ParseError("Invalid LDM instruction")
         return True
 
-    def compute_result(self): # pylint: disable=arguments-differ
+    def compute_result(self):  # pylint: disable=arguments-differ
         # test if PC will be set. If so, the jumpkind of this block should be Ijk_Ret
         l.warning("Spotting an LDM instruction at %#x.  This is not fully tested.  Prepare for errors.", self.addr)
-        #l.warning(repr(self.rawbits))
-        #l.warning(repr(self.data))
+        # l.warning(repr(self.rawbits))
+        # l.warning(repr(self.data))
 
         src_n = int(self.data['b'], 2)
         src = self.get(src_n, Type.int_32)
@@ -227,7 +242,7 @@ class Instruction_STC(ARMInstruction):
     name = 'STC'
     bin_format = 'cccc110PUNW0nnnnddddppppOOOOOOOO'
 
-    def compute_result(self): # pylint: disable=arguments-differ
+    def compute_result(self):  # pylint: disable=arguments-differ
         # TODO At least look at the conditionals
         l.debug("Ignoring STC instruction at %#x.", self.addr)
 
@@ -236,7 +251,7 @@ class Instruction_STC_THUMB(ARMInstruction):
     name = 'STC'
     bin_format = '111c110PUNW0nnnnddddppppOOOOOOOO'
 
-    def compute_result(self): # pylint: disable=arguments-differ
+    def compute_result(self):  # pylint: disable=arguments-differ
         # TODO At least look at the conditionals
         l.debug("Ignoring STC instruction at %#x.", self.addr)
 
@@ -245,7 +260,7 @@ class Instruction_LDC(ARMInstruction):
     name = 'LDC'
     bin_format = 'cccc110PUNW1nnnnddddppppOOOOOOOO'
 
-    def compute_result(self): # pylint: disable=arguments-differ
+    def compute_result(self):  # pylint: disable=arguments-differ
         # TODO At least look at the conditionals
         # TODO Clobber the dest reg of LDC
         # TODO Maybe clobber the dst reg of CDP, if we're really adventurous
@@ -256,7 +271,7 @@ class Instruction_LDC_THUMB(ARMInstruction):
     name = 'LDC'
     bin_format = '111c110PUNW1nnnnddddppppOOOOOOOO'
 
-    def compute_result(self): # pylint: disable=arguments-differ
+    def compute_result(self):  # pylint: disable=arguments-differ
         # TODO At least look at the conditionals
         # TODO Clobber the dest reg of LDC
         # TODO Maybe clobber the dst reg of CDP, if we're really adventurous
@@ -266,12 +281,13 @@ class Instruction_LDC_THUMB(ARMInstruction):
 class Instruction_CDP(Instruction):
     name = "CDP"
     bin_format = 'cccc1110oooonnnnddddppppPPP0mmmm'
+
     # c = cond
     # d = CPd
     # O = Offset
     # p = CP#
 
-    def compute_result(self): # pylint: disable=arguments-differ
+    def compute_result(self):  # pylint: disable=arguments-differ
         # TODO At least look at the conditionals
         # TODO Maybe clobber the dst reg of CDP, if we're really adventurous
         l.debug("Ignoring CDP instruction at %#x.", self.addr)
@@ -281,85 +297,187 @@ class Instruction_CDP(Instruction):
 ## Thumb! (ugh)
 ##
 
-class ThumbInstruction(Instruction): # pylint: disable=abstract-method
+class ThumbInstruction(Instruction):  # pylint: disable=abstract-method
 
     def mark_instruction_start(self):
-        self.irsb_c.imark(self.addr-1, self.bytewidth, 1)
+        self.irsb_c.imark(self.addr - 1, self.bytewidth, 1)
 
 
 class Instruction_tCPSID(ThumbInstruction):
     name = 'CPSID'
-    bin_format = '101101x0011x0010'
+    # old: bin_format = '101101x0011x0010'
+    bin_format = '1011011001110010'
 
-    def compute_result(self): # pylint: disable=arguments-differ
+    #    '10110110011im0AIF' # https://developer.arm.com/documentation/ddi0308/d/Thumb-Instructions/Alphabetical-list-of-Thumb-instructions/CPS?lang=en
+
+    def compute_result(self):  # pylint: disable=arguments-differ
+        src = self.get('primask', Type.int_8)
+        src.set_bit(0, 1)
+        self.put(src, 'primask')
+        # l.debug("[thumb] Ignoring CPS instruction at %#x.", self.addr)
+
+
+class Instruction_tCPSIE(ThumbInstruction):
+    name = 'CPSIE'
+    bin_format = '1011011001100010'
+
+    #    '10110110011im0AIF' # https://developer.arm.com/documentation/ddi0308/d/Thumb-Instructions/Alphabetical-list-of-Thumb-instructions/CPS?lang=en
+
+    def compute_result(self):  # pylint: disable=arguments-differ
         # TODO haha lol yeah right
+        src = self.get('primask', Type.int_8)
+        src.set_bit(0, 0)
+        self.put(src, 'primask')
         l.debug("[thumb] Ignoring CPS instruction at %#x.", self.addr)
 
+
 class Instruction_tMSR(ThumbInstruction):
-    name = 'tMSR'
+    name = 'tMSR'  # tMSR thumbMSR instruction. Move from Special Register to Regular Register.
     bin_format = '10x0mmmmxxxxxxxx11110011100Rrrrr'
 
-    def compute_result(self): # pylint: disable=arguments-differ
-        dest_spec_reg = int(self.data['x'], 2)
-        src_reg = int(self.data['r'], 2)
+    # 10000001111100110000100010001000
+    # 10001110111100110000000010001100
+    # _format = '10x0mmmmxxxxxxxx11110011100Rrrrr' # from: https://developer.arm.com/documentation/ddi0308/d/Thumb-Instructions/Alphabetical-list-of-Thumb-instructions/MSR--register-?lang=en
+    # experimental bin_format = '11110011100RRn10(0)0mask(0)(0)(0)(0)(0)(0)(0)(0)'
+    # '100Rrrrr111100110000100010001000
+    # 08 = 00001000
+    # 88 = 10001000
+    # little endian: 81f30888 becomes 8808f381
+    # 81f30888  msr msp, r1
+    # f3818808 	msr	MSP, r1
+    # f38e8c00 	msr	CPSR_fs, lr
+
+    def compute_result(self):  # pylint: disable=arguments-differ
+        l.warning(repr(self.rawbits))
+        l.warning(repr(self.data))
+        dest_spec_reg = int(self.data['x'], base=2)
+        src_reg = int(self.data['r'], base=2)
 
         # If 0, do not write the SPSR
         if self.data['R'] == '0':
-            if dest_spec_reg == 8: #msp
+            if dest_spec_reg == 8:  # msp
                 src = self.get(src_reg, Type.int_32)
-                self.put(src, 'sp')
-            elif dest_spec_reg == 16: #primask
+                self.put(src, 'msp')
+                l.warning(f"writing {src} into msp")
+            elif dest_spec_reg == 9:
+                src = self.get(src_reg, Type.int_32)
+                self.put(src, 'psp')
+                l.warning(f"writing {src} into psp")
+            elif dest_spec_reg == 10:
+                src = self.get(src_reg, Type.int_32)
+                self.put(src, 'msplim')
+                l.warning(f"writing {src} into msplim")
+            elif dest_spec_reg == 16:  # primask
                 src = self.get(src_reg, Type.int_32)
                 self.put(src, 'primask')
+            elif dest_spec_reg == 136:  # CPSR_fs  # todo: add CPSR_fs
+                src = self.get(src_reg, Type.int_32)
+                self.put(src, 'msplim')
+                l.warning(f"writing {src} into msplim")
             else:
-               l.warning("[thumb] tMSR at %#x is writing into an unsupported special register %#x. Ignoring the instruction. FixMe.", self.addr, dest_spec_reg)
+                l.warning(
+                    "[thumb] tMSR at %#x is writing into an unsupported special register %#x. Ignoring the instruction. FixMe.",
+                    self.addr, dest_spec_reg)
         else:
             l.warning("[thumb] tMSR at %#x is writing SPSR. Ignoring the instruction. FixMe.", self.addr)
-        l.warning("[thumb] Spotting an tMSR instruction at %#x.  This is not fully tested.  Prepare for errors." , self.addr)
+        l.warning("[thumb] Spotting an tMSR instruction at %#x.  This is not fully tested.  Prepare for errors.",
+                  self.addr)
+
 
 class Instruction_tMRS(ThumbInstruction):
     name = 'tMRS'
     bin_format = '10x0mmmmxxxxxxxx11110011111Rrrrr'
 
-    def compute_result(self): # pylint: disable=arguments-differ
+    def compute_result(self):  # pylint: disable=arguments-differ
+        l.warning(repr(self.rawbits))
+        l.warning(repr(self.data))
+        spec_reg = int(self.data['x'], base=2)
+        dest_reg = int(self.data['m'], base=2)
 
-        spec_reg = int(self.data['x'], 2)
-        dest_reg = int(self.data['m'], 2)
-
-        # Reading from CPSR
+        # Reading from CPSRregis
         if self.data['R'] == '0':
             # See special registers constants here:
             # https://github.com/aquynh/capstone/blob/45bec1a691e455b864f7e4d394711a467e5493dc/arch/ARM/ARMInstPrinter.c#L1654
             if spec_reg == 8:
-                # We move the SP and call it a day.
-                src = self.get("sp", Type.int_32)
+                # original comment before grzonka # We move the SP and call it a day.
+                src = self.get("msp", Type.int_32)  # originally got sp
+                self.put(src, dest_reg)
+            elif spec_reg == 9:
+                src = self.get("psp", Type.int_32)
+                self.put(src, dest_reg)
+            elif spec_reg == 10:
+                src = self.get("msplim", Type.int_32)
                 self.put(src, dest_reg)
             elif spec_reg == 16:
                 src = self.get("primask", Type.int_32)
                 self.put(src, dest_reg)
             else:
-                l.warning("[thumb] tMRS at %#x is using the unsupported special register %#x. Ignoring the instruction. FixMe." , self.addr, spec_reg)
+                l.warning(
+                    "[thumb] tMRS at %#x is using the unsupported special register %#x. Ignoring the instruction. FixMe.",
+                    self.addr, spec_reg)
         else:
-            l.warning("[thumb] tMRS at %#x is reading from SPSR. Ignoring the instruction. FixMe." , self.addr)
+            l.warning("[thumb] tMRS at %#x is reading from SPSR. Ignoring the instruction. FixMe.", self.addr)
             l.debug("[thumb] Ignoring tMRS instruction at %#x.", self.addr)
-        l.warning("[thumb] Spotting an tMRS instruction at %#x.  This is not fully tested.  Prepare for errors." , self.addr)
+        l.warning("[thumb] Spotting an tMRS instruction at %#x.  This is not fully tested.  Prepare for errors.",
+                  self.addr)
+
+
+class Instruction_tSTM(ThumbInstruction):
+    name = 'tSTM'
+
+    # bin_format = '11101001001011010100001110110000'
+    bin_format = '00101101111010011110000001001111'
+
+    # raw bytes = e92d 4fe0
+    # flipped = 2de9e04f'
+    # 1110100101111111
+    # bin_format = '10x0mmmmxxxxxxxx11110011111Rrrrr'
+
+    def compute_result(self):  # pylint: disable=arguments-differ
+        l.warning(repr(self.rawbits))
+        l.warning(repr(self.data))
+        l.warning(f"found tSTMDB at {self.addr}")
+        spec_reg = int(self.data['x'], base=2)
+        dest_reg = int(self.data['m'], base=2)
+
+        l.warning("[thumb] Spotting an tSTM instruction at %#x.  This is not fully tested.  Prepare for errors.",
+                  self.addr)
+
+    # https://developer.arm.com/documentation/100235/0100/The-Cortex-M33-Instruction-Set/Memory-access-instructions/LDM-and-STM?lang=en
+    # examples:
+    # 10001278:	e92d 43b0 	stmdb	sp!, {r4, r5, r7, r8, r9, lr}
+    # 10002664:	e92d 4ff0 	stmdb	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, lr}
+    # 10003012:	e92d 4fe0 	stmdb	sp!, {r5, r6, r7, r8, r9, sl, fp, lr}
+    def match_instruction(self, data, bitstrm):
+        # If we don't push anything, that's not real
+        if int(data['r']) == 0:
+            raise ParseError("Invalid STM instruction")
+        return True
+
+    # def compute_result(self): # pylint: disable=arguments-differ
+    #     l.warning("Ignoring STMxx ^ instruction at %#x. This mode is not implemented by VEX! See pyvex/lifting/gym/arm_spotter.py", self.addr)
+
+
+class Instruction_tVMSR(ThumbInstruction):
+    name = 'VMSR'  # https://developer.arm.com/documentation/100235/0100/The-Cortex-M33-Instruction-Set/Floating-point-instructions/VMSR?lang=en
 
 
 class Instruction_tDMB(ThumbInstruction):
     name = 'DMB'
     bin_format = '100011110101xxxx1111001110111111'
+
     def compute_result(self):  # pylint: disable=arguments-differ
         # TODO haha lol yeah right
         l.debug("[thumb] Ignoring DMB instruction at %#x.", self.addr)
 
 
-
 class Instruction_WFI(ThumbInstruction):
     name = "WFI"
     bin_format = "10111111001a0000"
-                 #1011111100110000
 
-    def compute_result(self): # pylint: disable=arguments-differ
+    # 1011111100110000
+
+    def compute_result(self):  # pylint: disable=arguments-differ
         l.debug("[thumb] Ignoring WFI instruction at %#x.", self.addr)
 
 
@@ -378,6 +496,7 @@ class ARMSpotter(GymratLifter):
     thumb_instrs = [Instruction_tCPSID,
                     Instruction_tMSR,
                     Instruction_tMRS,
+                    Instruction_tSTM,
                     Instruction_WFI,
                     Instruction_tDMB,
                     Instruction_STC_THUMB,
@@ -397,6 +516,7 @@ class ARMSpotter(GymratLifter):
             self.instrs = self.arm_instrs
             self.thumb = False
         super().lift(disassemble, dump_irsb)
+
 
 register(ARMSpotter, "ARM")
 register(ARMSpotter, "ARMEL")
